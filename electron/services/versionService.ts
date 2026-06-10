@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as https from 'https';
 import * as http from 'http';
 import AdmZip from 'adm-zip';
+import * as sevenZip from 'node-7z';
 import { TitanicVersion } from './apiService';
 import { EventEmitter } from 'events';
 
@@ -192,9 +193,24 @@ export class VersionService extends EventEmitter {
 
       this.emit('download-progress', { versionId, progress: 0, status: 'extracting' });
 
-      // Extract the zip file
-      const zip = new AdmZip(filePath);
-      zip.extractAllTo(versionPath, true);
+      const fileExtension = path.extname(filePath).toLowerCase();
+
+      // Extract based on file type
+      if (fileExtension === '.7z') {
+        // Use node-7z for .7z files
+        await new Promise<void>((resolve, reject) => {
+          const stream = sevenZip.extractFull(filePath, versionPath, {
+            $bin: '7z'
+          });
+          
+          stream.on('end', () => resolve());
+          stream.on('error', (error) => reject(error));
+        });
+      } else {
+        // Use adm-zip for .zip and .iceclient files
+        const zip = new AdmZip(filePath);
+        zip.extractAllTo(versionPath, true);
+      }
 
       // Get the size of the extracted directory
       const size = this.getDirectorySize(versionPath);

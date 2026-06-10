@@ -183,7 +183,7 @@ ipcMain.handle('select-client-file', async () => {
       title: 'Select Client File',
       properties: ['openFile'],
       filters: [
-        { name: 'Client Files', extensions: ['zip', 'iceclient'] },
+        { name: 'Client Files', extensions: ['zip', 'iceclient', '7z'] },
         { name: 'All Files', extensions: ['*'] }
       ]
     });
