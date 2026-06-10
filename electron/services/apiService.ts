@@ -20,7 +20,7 @@ export class ApiService {
   
   static async fetchAvailableVersions(): Promise<TitanicVersion[]> {
     return new Promise((resolve, reject) => {
-      http.get(`${this.TITANIC_API_URL}/releases`, (res) => {
+      http.get(`${this.TITANIC_API_URL}/releases/`, (res) => {
         let data = '';
         
         res.on('data', (chunk) => {
