@@ -1,4 +1,4 @@
-import * as https from 'https';
+import * as http from 'http';
 
 export interface TitanicVersion {
   id: string;
@@ -16,11 +16,11 @@ export interface TitanicVersion {
 }
 
 export class ApiService {
-  private static readonly TITANIC_API_URL = 'https://api.titanic.sh';
+  private static readonly TITANIC_API_URL = 'http://api.titanic.sh';
   
   static async fetchAvailableVersions(): Promise<TitanicVersion[]> {
     return new Promise((resolve, reject) => {
-      https.get(`${this.TITANIC_API_URL}/releases`, (res) => {
+      http.get(`${this.TITANIC_API_URL}/releases`, (res) => {
         let data = '';
         
         res.on('data', (chunk) => {
