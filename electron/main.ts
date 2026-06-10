@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { ApiService } from './services/apiService';
 import { VersionService, InstalledVersion } from './services/versionService';
@@ -173,6 +173,45 @@ ipcMain.handle('open-external', async (event, url: string) => {
     return { success: true };
   } catch (error) {
     console.error('Error opening external URL:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle('select-client-file', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      title: 'Select Client File',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Client Files', extensions: ['zip', 'iceclient'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    return { success: true, filePath: result.filePaths[0] };
+  } catch (error) {
+    console.error('Error selecting file:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle('import-client', async (event, filePath: string) => {
+  try {
+    // Set up progress listener
+    versionService.on('download-progress', (data) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('download-progress', data);
+      }
+    });
+
+    await versionService.importClient(filePath);
+    return { success: true };
+  } catch (error) {
+    console.error('Error importing client:', error);
     return { success: false, error: String(error) };
   }
 });

@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   installOsuWine: () => ipcRenderer.invoke('install-osu-wine'),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+  selectClientFile: () => ipcRenderer.invoke('select-client-file'),
+  importClient: (filePath: string) => ipcRenderer.invoke('import-client', filePath),
   onDownloadProgress: (callback: (data: { versionId: string; progress: number; status: string }) => void) => {
     ipcRenderer.on('download-progress', (_, data) => callback(data));
   }

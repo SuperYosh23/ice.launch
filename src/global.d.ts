@@ -9,6 +9,8 @@ export interface ElectronAPI {
   getSettings: () => Promise<any>
   installOsuWine: () => Promise<{ success: boolean; error?: string }>
   openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
+  selectClientFile: () => Promise<{ success: boolean; canceled?: boolean; filePath?: string; error?: string }>
+  importClient: (filePath: string) => Promise<{ success: boolean; error?: string }>
   onDownloadProgress: (callback: (data: { versionId: string; progress: number; status: string }) => void) => void
 }
 

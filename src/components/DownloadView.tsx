@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownload, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faSpinner, faUpload } from '@fortawesome/free-solid-svg-icons'
 
 interface DownloadViewProps {
   onVersionUpdate: () => void
@@ -22,6 +22,7 @@ export default function DownloadView({ onVersionUpdate, onLog }: DownloadViewPro
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -53,11 +54,11 @@ export default function DownloadView({ onVersionUpdate, onLog }: DownloadViewPro
 
   const handleDownload = async () => {
     if (!selectedVersion) return
-    
+
     setIsDownloading(true)
     setDownloadProgress(0)
     onLog(`Starting download of ${selectedVersion.name}...`)
-    
+
     // Set up progress listener
     window.electronAPI.onDownloadProgress((data) => {
       if (data.versionId === selectedVersion.id) {
@@ -65,10 +66,10 @@ export default function DownloadView({ onVersionUpdate, onLog }: DownloadViewPro
         onLog(`Download progress: ${data.progress}% - ${data.status}`)
       }
     })
-    
+
     try {
       const result = await window.electronAPI.downloadVersion(selectedVersion.id)
-      
+
       if (result.success) {
         onLog('Download completed successfully!')
         onVersionUpdate()
@@ -83,17 +84,111 @@ export default function DownloadView({ onVersionUpdate, onLog }: DownloadViewPro
     }
   }
 
+  const handleImport = async () => {
+    setIsImporting(true)
+    onLog('Opening file picker...')
+
+    try {
+      const result = await window.electronAPI.selectClientFile()
+
+      if (result.canceled) {
+        onLog('File selection canceled')
+        setIsImporting(false)
+        return
+      }
+
+      if (!result.success || !result.filePath) {
+        onLog(`Error selecting file: ${result.error}`)
+        setIsImporting(false)
+        return
+      }
+
+      onLog(`Importing client from: ${result.filePath}`)
+
+      // Set up progress listener
+      window.electronAPI.onDownloadProgress((data) => {
+        if (data.versionId.startsWith('imported-')) {
+          onLog(`Import progress: ${data.progress}% - ${data.status}`)
+        }
+      })
+
+      const importResult = await window.electronAPI.importClient(result.filePath)
+
+      if (importResult.success) {
+        onLog('Client imported successfully!')
+        onVersionUpdate()
+      } else {
+        onLog(`Import failed: ${importResult.error}`)
+      }
+    } catch (error) {
+      onLog(`Error importing client: ${error}`)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <h2 style={{ 
-        fontSize: '32px', 
-        fontWeight: '700', 
-        color: 'var(--viso-text-primary)', 
-        marginBottom: '24px',
-        letterSpacing: '-0.025em'
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '24px'
       }}>
-        Download Clients
-      </h2>
+        <h2 style={{ 
+          fontSize: '32px', 
+          fontWeight: '700', 
+          color: 'var(--viso-text-primary)',
+          letterSpacing: '-0.025em'
+        }}>
+          Download Clients
+        </h2>
+        <button
+          onClick={handleImport}
+          disabled={isImporting}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: '700',
+            borderRadius: '8px',
+            cursor: isImporting ? 'not-allowed' : 'pointer',
+            transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+            border: '2px solid transparent',
+            background: isImporting 
+              ? 'var(--viso-bg-tertiary)' 
+              : 'linear-gradient(145deg, var(--viso-accent-dim), var(--viso-accent))',
+            color: isImporting ? 'var(--viso-text-muted)' : 'var(--viso-bg-primary)',
+            boxShadow: 'var(--shadow-sm)',
+            opacity: isImporting ? 0.6 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isImporting) {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = 'var(--shadow-md), var(--shadow-glow)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isImporting) {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+            }
+          }}
+        >
+          {isImporting ? (
+            <>
+              <FontAwesomeIcon icon={faSpinner} spin /> Importing...
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faUpload} /> Import Client
+            </>
+          )}
+        </button>
+      </div>
 
       {isLoading && (
         <div style={{ 

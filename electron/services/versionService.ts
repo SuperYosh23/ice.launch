@@ -182,4 +182,41 @@ export class VersionService extends EventEmitter {
     
     return totalSize;
   }
+
+  async importClient(filePath: string): Promise<void> {
+    try {
+      // Generate a version ID from the filename
+      const fileName = path.basename(filePath, path.extname(filePath));
+      const versionId = `imported-${fileName}-${Date.now()}`;
+      const versionPath = path.join(this.versionsPath, versionId);
+
+      this.emit('download-progress', { versionId, progress: 0, status: 'extracting' });
+
+      // Extract the zip file
+      const zip = new AdmZip(filePath);
+      zip.extractAllTo(versionPath, true);
+
+      // Get the size of the extracted directory
+      const size = this.getDirectorySize(versionPath);
+
+      // Create an installed version entry
+      const installedVersion: InstalledVersion = {
+        id: versionId,
+        name: fileName,
+        version: fileName,
+        description: 'Imported client',
+        size,
+        path: versionPath,
+        installed: true
+      };
+
+      this.installedVersions.set(versionId, installedVersion);
+      this.saveInstalledVersions();
+
+      this.emit('download-progress', { versionId, progress: 100, status: 'complete' });
+    } catch (error) {
+      this.emit('download-progress', { versionId: 'import', progress: 0, status: 'error' });
+      throw error;
+    }
+  }
 }
