@@ -13,50 +13,42 @@ export class LaunchService {
   }
   
   async launchVersion(version: InstalledVersion): Promise<boolean> {
-    const osuWinePath = this.settingsService.getOsuWinePath();
-    
+    const osuWinePath = 'osu-wine';
+
     console.log('Launching version:', version.name);
     console.log('osu-wine path:', osuWinePath);
     console.log('Version path:', version.path);
-    
-    if (!osuWinePath) {
-      throw new Error('osu-wine path not configured');
-    }
-    
-    if (!fs.existsSync(osuWinePath)) {
-      throw new Error(`osu-wine not found at configured path: ${osuWinePath}`);
-    }
-    
+
     if (!fs.existsSync(version.path)) {
       throw new Error(`Version directory not found: ${version.path}`);
     }
-    
+
     try {
       const args = ['--wine'];
-      
+
       // Add custom launch arguments if specified
       if (version.launchArgs && version.launchArgs.length > 0) {
         args.push(...version.launchArgs);
       }
-      
+
       // Add the version path with osu!.exe
       args.push(path.join(version.path, 'osu!.exe'));
-      
+
       console.log('Launch command:', osuWinePath, args.join(' '));
-      
+
       const process = spawn(osuWinePath, args, {
         detached: true,
         stdio: 'ignore'
       });
-      
+
       this.activeProcesses.set(version.id, process);
-      
+
       process.on('error', (err) => {
         console.error('Failed to start process:', err);
       });
-      
+
       process.unref();
-      
+
       console.log('Process started successfully');
       return true;
     } catch (error) {
