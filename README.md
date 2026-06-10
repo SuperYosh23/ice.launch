@@ -10,7 +10,6 @@ A modern Electron-based launcher for Titanic osu! versions on Linux. This is a f
 - **Smart Download**: Downloads and extracts game versions with progress tracking
 - **Version Management**: Install, launch, and delete different versions
 - **Progress Tracking**: Shows download and extraction progress with visual feedback
-- **Size Display**: Shows installed version sizes in human-readable format
 - **Linux Support**: Launches games using osu-wine --wine command
 
 ### Advanced Features
@@ -20,6 +19,7 @@ A modern Electron-based launcher for Titanic osu! versions on Linux. This is a f
 - **osu-wine Auto-Install**: One-click osu-wine installation with progress tracking
 - **Persistent Settings**: All configurations saved automatically using electron-store
 - **Console Logging**: Built-in console output for debugging and progress tracking
+- **Profile Viewing**: View osu! user profiles with stats, playstyles, and userpage content
 
 ## Tech Stack
 
@@ -31,6 +31,7 @@ A modern Electron-based launcher for Titanic osu! versions on Linux. This is a f
 - **electron-store**: Persistent settings storage
 - **axios**: HTTP client for API calls
 - **adm-zip**: ZIP file extraction
+- **FontAwesome**: Icon library for UI elements
 
 ## Requirements
 
@@ -106,7 +107,8 @@ ice.launch/
 │   │   ├── apiService.ts    # Titanic API integration
 │   │   ├── versionService.ts # Version management
 │   │   ├── settingsService.ts # Settings persistence
-│   │   └── launchService.ts  # Game launching
+│   │   ├── launchService.ts  # Game launching
+│   │   └── profileService.ts # User profile fetching
 │   └── tsconfig.json
 ├── src/
 │   ├── components/
@@ -114,7 +116,9 @@ ice.launch/
 │   │   ├── MainContent.tsx  # Main content area
 │   │   ├── InstalledView.tsx # Installed versions view
 │   │   ├── DownloadView.tsx  # Download view
-│   │   └── OptionsView.tsx   # Settings view
+│   │   ├── ProfileView.tsx  # User profile view
+│   │   ├── OptionsView.tsx   # Settings view
+│   │   └── Modal.tsx        # Modal component
 │   ├── App.tsx              # Main React component
 │   ├── main.tsx             # React entry point
 │   ├── types.ts             # TypeScript types
@@ -129,13 +133,13 @@ ice.launch/
 
 ## Configuration
 
-Settings are stored in `~/.config/iceberg/config.json` (Linux) and include:
+Settings are stored in `~/.config/ice.launch/config.json` (Linux) and include:
 - Theme preference (dark/light)
 - Accent color selection
 - osu-wine path
 - Version-specific settings (custom names, launch arguments)
 
-Installed versions are stored in `~/.iceberg/versions/` with metadata in `versions.json`.
+Installed versions are stored in `~/.ice.launch/versions/` with metadata in `versions.json`.
 
 ## Development
 
