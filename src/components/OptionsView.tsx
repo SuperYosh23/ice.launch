@@ -62,22 +62,22 @@ export default function OptionsView({ settings, onSettingsChange, onLog }: Optio
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* User ID */}
           <div>
-            <label style={{ 
-              fontSize: '12px', 
-              fontWeight: '600', 
-              color: 'var(--viso-text-muted)', 
+            <label style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: 'var(--viso-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '12px',
               display: 'block'
             }}>
-              User ID
+              Username or User ID
             </label>
             <input
               type="text"
               value={settings.userId || ''}
               onChange={(e) => onSettingsChange({ ...settings, userId: e.target.value })}
-              placeholder="Enter your osu! user ID"
+              placeholder="Enter your osu! username or user ID"
               style={{
                 width: '100%',
                 padding: '12px 16px',

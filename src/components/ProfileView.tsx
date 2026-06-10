@@ -41,13 +41,34 @@ export default function ProfileView({ userId, onLog }: ProfileViewProps) {
     }
   }, [userId])
 
+  const lookupUserId = async (input: string): Promise<string> => {
+    try {
+      const response = await fetch(`http://api.titanic.sh/users/lookup/${input}`);
+      if (!response.ok) {
+        throw new Error('User not found');
+      }
+      const data = await response.json();
+      return data.id.toString();
+    } catch (error) {
+      throw new Error('Failed to lookup user');
+    }
+  };
+
   const loadProfile = async () => {
     setIsLoading(true)
     setError('')
     onLog(`Loading profile for user ${userId}...`)
-    
+
     try {
-      const response = await fetch(`https://osu.titanic.sh/u/${userId}`);
+      // Check if userId is a number (already an ID) or a username
+      let actualUserId = userId;
+      if (!/^\d+$/.test(userId)) {
+        onLog(`Looking up user ID for username "${userId}"...`);
+        actualUserId = await lookupUserId(userId);
+        onLog(`Found user ID: ${actualUserId}`);
+      }
+
+      const response = await fetch(`https://osu.titanic.sh/u/${actualUserId}`);
       const html = await response.text();
       
       // Parse HTML using DOMParser
