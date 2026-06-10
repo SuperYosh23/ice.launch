@@ -169,19 +169,81 @@ export class VersionService extends EventEmitter {
   private getDirectorySize(dirPath: string): number {
     let totalSize = 0;
     const files = fs.readdirSync(dirPath);
-    
+
     for (const file of files) {
       const filePath = path.join(dirPath, file);
       const stats = fs.statSync(filePath);
-      
+
       if (stats.isDirectory()) {
         totalSize += this.getDirectorySize(filePath);
       } else {
         totalSize += stats.size;
       }
     }
-    
+
     return totalSize;
+  }
+
+  private findOsuExe(dirPath: string, maxDepth: number = 3, currentDepth: number = 0): string | null {
+    if (currentDepth > maxDepth) {
+      return null;
+    }
+
+    const files = fs.readdirSync(dirPath);
+
+    // Check if osu!.exe exists in current directory
+    if (files.includes('osu!.exe')) {
+      return dirPath;
+    }
+
+    // Search subdirectories
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isDirectory()) {
+        const result = this.findOsuExe(filePath, maxDepth, currentDepth + 1);
+        if (result) {
+          return result;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private findClosestOsuExe(dirPath: string, maxDepth: number = 3): string | null {
+    let closestPath: string | null = null;
+    let minDepth = Infinity;
+
+    const searchAtDepth = (currentPath: string, currentDepth: number): void => {
+      if (currentDepth > maxDepth) {
+        return;
+      }
+
+      const files = fs.readdirSync(currentPath);
+
+      // Check if osu!.exe exists in current directory
+      if (files.includes('osu!.exe')) {
+        if (currentDepth < minDepth) {
+          minDepth = currentDepth;
+          closestPath = currentPath;
+        }
+      }
+
+      // Search subdirectories
+      for (const file of files) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.statSync(filePath);
+
+        if (stats.isDirectory()) {
+          searchAtDepth(filePath, currentDepth + 1);
+        }
+      }
+    };
+
+    searchAtDepth(dirPath, 0);
+    return closestPath;
   }
 
   async importClient(filePath: string): Promise<void> {
@@ -202,7 +264,7 @@ export class VersionService extends EventEmitter {
           const stream = sevenZip.extractFull(filePath, versionPath, {
             $bin: '7z'
           });
-          
+
           stream.on('end', () => resolve());
           stream.on('error', (error) => reject(error));
         });
@@ -210,6 +272,31 @@ export class VersionService extends EventEmitter {
         // Use adm-zip for .zip and .iceclient files
         const zip = new AdmZip(filePath);
         zip.extractAllTo(versionPath, true);
+      }
+
+      // Find osu!.exe up to 3 levels deep
+      const osuExePath = this.findClosestOsuExe(versionPath, 3);
+
+      if (!osuExePath) {
+        throw new Error('osu!.exe not found in the archive');
+      }
+
+      // If osu!.exe is not at the root level, move contents to root
+      let finalPath = versionPath;
+      if (osuExePath !== versionPath) {
+        // Move contents from the found directory to the root
+        const files = fs.readdirSync(osuExePath);
+        for (const file of files) {
+          const srcPath = path.join(osuExePath, file);
+          const destPath = path.join(versionPath, file);
+          fs.renameSync(srcPath, destPath);
+        }
+
+        // Remove the empty directory
+        fs.rmSync(osuExePath, { recursive: true, force: true });
+
+        // Clean up any other empty directories
+        this.cleanEmptyDirectories(versionPath);
       }
 
       // Get the size of the extracted directory
@@ -233,6 +320,25 @@ export class VersionService extends EventEmitter {
     } catch (error) {
       this.emit('download-progress', { versionId: 'import', progress: 0, status: 'error' });
       throw error;
+    }
+  }
+
+  private cleanEmptyDirectories(dirPath: string): void {
+    const files = fs.readdirSync(dirPath);
+
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isDirectory()) {
+        this.cleanEmptyDirectories(filePath);
+
+        // Check if directory is now empty
+        const remainingFiles = fs.readdirSync(filePath);
+        if (remainingFiles.length === 0) {
+          fs.rmSync(filePath, { recursive: true, force: true });
+        }
+      }
     }
   }
 }
